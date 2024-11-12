@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scognaflix</title>
+    <style>
+        /* Reset styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Body styling */
+        body {
+            background-color: #141414;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Logo */
+        .logo img {
+            width: 200px;
+            margin-bottom: 20px;
+        }
+
+        /* Search container styling */
+        .search-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .search-container input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            outline: none;
+            color: #333;
+            background-color: #e5e5e5;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .search-container input[type="text"]:focus {
+            box-shadow: 0 4px 12px rgba(229, 9, 20, 0.6);
+        }
+
+        /* Movie list styling */
+        .movie-list {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            max-height: 400px;
+            overflow-y: auto;
+            width: 100%;
+            max-width: 600px;
+            background-color: #222;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .movie-item {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .movie-item:hover {
+            background-color: rgba(229, 9, 20, 0.3);
+        }
+
+        .movie-item img {
+            width: 50px;
+            height: 75px;
+            border-radius: 4px;
+            margin-right: 15px;
+        }
+
+        .movie-item span {
+            font-size: 1em;
+        }
+
+        /* Player container */
+        #playerContainer {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Rotella di caricamento */
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #e50914;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-top: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Testo di caricamento */
+        .loading-text {
+            color: #e50914;
+            font-size: 1.2em;
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo -->
+    <div class="logo">
+        <img src="https://i.imgur.com/cM9BY7P.png" alt="Logo Scognaflix" onclick="window.location.href='/'">
+    </div>
+
+    <!-- Search Container -->
+    <div class="search-container">
+        <input type="text" id="movieSearch" placeholder="Cerca un film..." oninput="searchMovies()">
+        <div id="movieList" class="movie-list"></div>
+    </div>
+
+    <!-- Player Container -->
+    <div id="playerContainer"></div>
+
+    <!-- Rotella di caricamento -->
+    <div class="loader" id="loadingSpinner"></div>
+    <div class="loading-text" id="loadingText">Caricamento in corso...</div>
+
+    <!-- Include hls.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        async function searchMovies() {
+            const query = document.getElementById('movieSearch').value.trim();
+            const movieList = document.getElementById('movieList');
+            const playerContainer = document.getElementById('playerContainer');
+
+            // Svuota il contenitore del player e nascondi i risultati della ricerca precedente
+            playerContainer.innerHTML = '';
+            movieList.style.display = 'none';
+            movieList.innerHTML = '';
+
+            if (query.length < 3) {
+                return;
+            }
+
+            const response = await fetch(`/search?query=${encodeURIComponent(query)}`);
+            const movies = await response.json();
+
+            if (movies.length > 0) {
+                movieList.style.display = 'flex';
+                movies.forEach(movie => {
+                    const movieItem = document.createElement('div');
+                    movieItem.classList.add('movie-item');
+                    movieItem.onclick = () => fetchVideoPlayer(movie.imdb_id);
+
+                    const img = document.createElement('img');
+                    img.src = movie.poster_path || 'placeholder.jpg';
+                    img.alt = movie.title;
+
+                    const title = document.createElement('span');
+                    title.textContent = movie.title;
+
+                    movieItem.appendChild(img);
+                    movieItem.appendChild(title);
+                    movieList.appendChild(movieItem);
+                });
+            }
+        }
+
+        async function fetchVideoPlayer(imdbId) {
+            document.getElementById('movieList').style.display = 'none';
+            document.getElementById('movieSearch').value = '';
+
+            // Mostra la rotella di caricamento
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('loadingText').style.display = 'block';
+
+            const response = await fetch('/scrape', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imdbId })
+            });
+
+            const data = await response.json();
+            if (data.m3u8Url) {
+                displayPlayer(data.m3u8Url);
+            } else {
+                alert("Errore durante il recupero dell'URL del video.");
+            }
+
+            // Nascondi la rotella di caricamento
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('loadingText').style.display = 'none';
+        }
+
+        function displayPlayer(m3u8Url) {
+            const playerContainer = document.getElementById('playerContainer');
+            playerContainer.innerHTML = '';
+
+            const video = document.createElement('video');
+            video.controls = true;
+            video.autoplay = true;
+
+            playerContainer.appendChild(video);
+
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(m3u8Url);
+                hls.attachMedia(video);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = m3u8Url;
+            } else {
+                alert("Il tuo browser non supporta lo streaming HLS.");
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Benvenuto nella Dashboard Admin</h1>
+
+    <h2>Lista Utenti</h2>
+    <table border="1">
+        <tr>
+            <th>Username</th>
+            <th>Admin</th>
+            <th>Elimina</th>
+        </tr>
+        <% users.forEach(user => { %>
+            <tr>
+                <td><%= user.username %></td>
+                <td><%= user.isAdmin ? "Sì" : "No" %></td>
+                <td>
+                    <!-- Form per eliminare l'utente -->
+                    <form action="/admin/delete/<%= user._id %>" method="POST" onsubmit="return confirm('Sei sicuro di voler eliminare questo utente?');">
+                        <button type="submit">Elimina</button>
+                    </form>
+                </td>
+            </tr>
+        <% }); %>
+    </table>
+
+    <h2>Crea un Nuovo Utente</h2>
+    <form action="/admin/create" method="POST">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br>
+
+        <label for="isAdmin">Admin:</label>
+        <input type="checkbox" id="isAdmin" name="isAdmin"><br>
+
+        <button type="submit">Crea Utente</button>
+    </form>
+
+    <br>
+    <a href="/logout">Logout</a>
+</body>
+</html>
