@@ -4,7 +4,7 @@ const User = require('../models/User');
 
 // GET: Pagina di login
 router.get('/login', (req, res) => {
-    res.render('login');
+    res.render('login', { error: null });
 });
 
 // POST: Autenticazione utente
@@ -16,7 +16,7 @@ router.post('/login', async (req, res) => {
         req.session.user = { id: user._id, isAdmin: user.isAdmin };
         return res.redirect(user.isAdmin ? '/admin' : '/'); // Reindirizza a /
     } else {
-        res.send('Credenziali non valide');
+        return res.render('login', { error: 'Username o Password errati' });
     }
 });
 
