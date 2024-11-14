@@ -99,6 +99,11 @@
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Login</button>
     </form>
-
+    <!-- Script per mostrare un alert se c'è un messaggio di errore -->
+    <% if (error) { %>
+        <script>
+            alert("<%= error %>");
+        </script>
+    <% } %>
 </body>
 </html>
