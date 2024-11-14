@@ -48,15 +48,14 @@ router.post('/create', isAdmin, async (req, res) => {
     }
 
     try {
-        // Crea un nuovo utente
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Crea un nuovo utente, senza fare hashing della password qui
         const newUser = new User({
             username,
-            password: hashedPassword,
-            isAdmin: isAdmin === 'on',  // Se la checkbox è selezionata, `isAdmin` sarà true
+            password,  // Lascia la password in chiaro, l'hashing avverrà nel middleware pre('save')
+            isAdmin: isAdmin === 'on', 
         });
 
-        await newUser.save();  // Salva l'utente nel database
+        await newUser.save();  // Salva l'utente nel database, il middleware `pre('save')` si occuperà dell'hashing
         res.redirect('/admin');  // Ritorna alla pagina admin con la lista aggiornata
     } catch (error) {
         console.error('Errore durante la creazione dell\'utente:', error);
